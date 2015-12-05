@@ -7,7 +7,7 @@ local nginx = require("kong.cli.services.nginx")(configuration.value, configurat
 local TIMEOUT = 10
 
 describe("Nginx", function()
-
+ 
   after_each(function() 
     local prepare_res, err = nginx:prepare()
     assert.falsy(err)
@@ -22,6 +22,7 @@ describe("Nginx", function()
     end
   end)
 
+ 
   it("should prepare", function()
     local ok, err = nginx:prepare()
     assert.falsy(err)

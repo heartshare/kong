@@ -12,10 +12,10 @@ return {
       else
         local members = cjson.decode(res)
         local result = {
-          total = #members,
           data = {}
         }
         local members = cjson.decode(res).members
+        result.total = #members
         for _, v in pairs(members) do
           table.insert(result.data, {
             name = v.name,

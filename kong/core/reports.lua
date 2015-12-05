@@ -11,6 +11,8 @@ local function create_timer(at, cb)
 end
 
 local function send_ping(premature)
+  if premature then return end
+
   local resty_lock = require "resty.lock"
   local lock = resty_lock:new("reports_locks", {
     exptime = INTERVAL - 0.001

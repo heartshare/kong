@@ -44,6 +44,8 @@ buffer_mt.MAX_BUFFER_SIZE = MAX_BUFFER_SIZE
 -- as possible.
 local delayed_send_handler
 delayed_send_handler = function(premature, buffer)
+  if premature then return end
+
   if ngx_now() - buffer.latest_call < buffer.AUTO_FLUSH_DELAY then
     -- If the latest call was received during the wait delay, abort the delayed send and
     -- report it for X more seconds.
@@ -160,7 +162,8 @@ end
 -- The payload will be removed if the socket server acknowledged the batch.
 -- If the queue still has payloads to be sent, keep on sending them.
 function buffer_mt.send_batch(premature, self)
-  if self.lock_sending then return end
+  if premature or self.lock_sending then return end
+  
   self.lock_sending = true -- simple lock
 
   if table_getn(self.sending_queue) < 1 then

@@ -69,6 +69,9 @@ end
 
 function Serf:_autojoin(current_node_name)
   if self._parsed_config.cluster["auto-join"] then
+
+    logger:info("Auto-joining cluster, please wait..")
+
     -- Delete current node just in case it was there
     local _, err = self._dao_factory.nodes:delete({
       name = current_node_name

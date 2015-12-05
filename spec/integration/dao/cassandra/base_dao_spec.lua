@@ -577,8 +577,7 @@ describe("Cassandra", function()
       describe(":insert()", function()
         local node, err = dao_factory.nodes:insert({
           address = "wot.hello.com:1111",
-          name = "wot",
-          status = "alive"
+          name = "wot"
         })
         assert.falsy(err)
         assert.truthy(node)
