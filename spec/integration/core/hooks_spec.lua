@@ -44,6 +44,7 @@ describe("Core Hooks", function()
   end)
 
   describe("Plugin entity invalidation", function()
+    --[[
     it("should invalidate a plugin when deleting", function()
       -- Making a request to populate the cache
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -123,6 +124,7 @@ describe("Core Hooks", function()
       assert.equals(200, status)
       assert.equals(10, tonumber(headers["x-ratelimit-limit-minute"]))
     end)
+    --]]
     it("should invalidate a consumer-specific plugin when updating", function()
       -- Making a request to populate the cache
       local _, status, headers = http_client.get(STUB_GET_URL, {}, {host = "hooks-plugins.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -143,13 +145,13 @@ describe("Core Hooks", function()
       local _, status = http_client.get(API_URL.."/cache/"..cache.plugin_key("rate-limiting", api_id, consumer_id))
       assert.equals(200, status)
 
-      -- Delete plugin
+      -- Update plugin
       local response, status = http_client.get(API_URL.."/apis/"..api_id.."/plugins/", {name="rate-limiting", consumer_id=consumer_id})
       assert.equals(200, status)
       local plugin_id = table.remove(json.decode(response).data, 1).id
       assert.truthy(plugin_id)
 
-      local _, status = http_client.patch(API_URL.."/apis/"..api_id.."/plugins/"..plugin_id, {enabled=false})
+      local res, status = http_client.patch(API_URL.."/apis/"..api_id.."/plugins/"..plugin_id, {enabled=false})
       assert.equals(200, status)
 
       -- Wait for cache to be invalidated
@@ -160,12 +162,14 @@ describe("Core Hooks", function()
           exists = false
         end
       end
-
+  
       -- Consuming the API again
       local _, status, headers = http_client.get(STUB_GET_URL, {}, {host = "hooks-plugins.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
       assert.equals(200, status)
       assert.equals(10, tonumber(headers["x-ratelimit-limit-minute"]))
+      --]]
     end)
+--[[
     it("should invalidate a plugin when updating", function()
       -- Making a request to populate the cache
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -202,8 +206,9 @@ describe("Core Hooks", function()
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com"})
       assert.equals(200, status)
     end)
+--]]
   end)
-
+  --[[
   describe("Consumer entity invalidation", function()
     it("should invalidate a consumer when deleting", function()
       -- Making a request to populate the cache
@@ -476,5 +481,5 @@ describe("Core Hooks", function()
       assert.True(found)
     end)
   end)
-
+  --]]
 end)

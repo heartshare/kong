@@ -128,6 +128,7 @@ function Kong.init()
   configuration = config_loader.load(os.getenv("KONG_CONF"))
   events = Events()
   dao = dao_loader.load(configuration, events)
+  process_id = utils.random_string()
   loaded_plugins = load_node_plugins(configuration)
 
   -- Attach hooks for every plugin
@@ -176,8 +177,6 @@ function Kong.exec_plugins_header_filter()
 end
 
 function Kong.exec_plugins_body_filter()
-  core.body_filter.before()
-
   for plugin, plugin_conf in plugins_iterator(loaded_plugins, "body_filter") do
     plugin.handler:body_filter(plugin_conf)
   end

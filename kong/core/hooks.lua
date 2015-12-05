@@ -4,6 +4,7 @@ local stringy = require "stringy"
 local cjson = require "cjson"
 
 local function invalidate_plugin(entity)
+  print("INVALIDATING "..cache.plugin_key(entity.name, entity.api_id, entity.consumer_id))
   cache.delete(cache.plugin_key(entity.name, entity.api_id, entity.consumer_id))
 end
 
@@ -54,6 +55,7 @@ end
 
 local function member_leave(message_t)
   local member = parse_member(message_t.entity)
+  if not member then return end
 
   local _, err = dao.nodes:delete({
     name = member.name
@@ -65,6 +67,7 @@ end
 
 local function member_update(message_t)
   local member = parse_member(message_t.entity)
+  if not member then return end
 
   local nodes, err = dao.nodes:find_by_keys({
     name = member.name
@@ -87,6 +90,7 @@ end
 
 local function member_join(message_t)
   local member = parse_member(message_t.entity)
+  if not member then return end
 
   local nodes, err = dao.nodes:find_by_keys({
     name = member.name
