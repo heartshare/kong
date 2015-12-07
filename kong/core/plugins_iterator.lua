@@ -17,11 +17,6 @@ local function load_plugin_configuration(api_id, consumer_id, plugin_name)
   local cache_key = cache.plugin_key(plugin_name, api_id, consumer_id)
 
   local plugin = cache.get_or_set(cache_key, function()
-
-    if plugin_name == "rate-limiting" then
-      print("LOADING FROM CACHE")
-    end
-
     local rows, err = dao.plugins:find_by_keys {
       api_id = api_id,
       consumer_id = consumer_id ~= nil and consumer_id or constants.DATABASE_NULL_ID,
@@ -39,12 +34,6 @@ local function load_plugin_configuration(api_id, consumer_id, plugin_name)
       return {null = true}
     end
   end)
-
-  if plugin.name == "rate-limiting" then
-    print("Loaded "..cache_key)
-    local inspect = require "inspect"
-    print(inspect(plugin))
-  end
 
   if plugin ~= nil and plugin.enabled then
     return plugin.config or {}

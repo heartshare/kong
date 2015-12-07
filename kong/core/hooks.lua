@@ -4,7 +4,6 @@ local stringy = require "stringy"
 local cjson = require "cjson"
 
 local function invalidate_plugin(entity)
-  print("INVALIDATING "..cache.plugin_key(entity.name, entity.api_id, entity.consumer_id))
   cache.delete(cache.plugin_key(entity.name, entity.api_id, entity.consumer_id))
 end
 
