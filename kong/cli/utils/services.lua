@@ -21,7 +21,7 @@ local function prepare_database(parsed_config)
   logger:info(string.format([[database...........%s %s]], parsed_config.database, tostring(parsed_config.dao_config)))
 
   local dao_factory = dao.load(parsed_config)
-  local migrations = require("kong.tools.migrations")(dao_factory)
+  local migrations = require("kong.tools.migrations")(dao_factory, parsed_config)
 
   local keyspace_exists, err = dao_factory.migrations:keyspace_exists()
   if err then
@@ -30,11 +30,24 @@ local function prepare_database(parsed_config)
     logger:info("Database not initialized. Running migrations...")
   end
 
-  local err = migrations:migrate_all(parsed_config, function(identifier, migration)
-    if migration then
-      logger:success(string.format("%s migrated up to: %s", identifier, logger.colors.yellow(migration.name)))
-    end
-  end)
+  local function before(identifier)
+    logger:info(string.format(
+      "Migrating %s on keyspace \"%s\" (%s)",
+      logger.colors.yellow(identifier),
+      logger.colors.yellow(dao_factory._properties.keyspace),
+      dao_factory.type
+    ))
+  end
+
+  local function on_each_success(identifier, migration)
+    logger:info(string.format(
+      "%s migrated up to: %s",
+      identifier,
+      logger.colors.yellow(migration.name)
+    ))
+  end
+
+  local err = migrations:run_all_migrations(before, on_each_success)
   if err then
     return false, err
   end

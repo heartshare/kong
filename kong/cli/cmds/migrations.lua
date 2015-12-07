@@ -30,7 +30,7 @@ end
 
 local parsed_config = configuration.parse(args.config).value
 local dao_factory = dao.load(parsed_config)
-local migrations = Migrations(dao_factory)
+local migrations = Migrations(dao_factory, parsed_config)
 
 local kind = args.type
 if kind ~= "all" and kind ~= "core" then
@@ -70,39 +70,33 @@ if args.command == "list" then
 
 elseif args.command == "up" then
 
-  local function migrate(identifier)
+  local function before(identifier)
     logger:info(string.format(
       "Migrating %s on keyspace \"%s\" (%s)",
       logger.colors.yellow(identifier),
       logger.colors.yellow(dao_factory._properties.keyspace),
       dao_factory.type
     ))
+  end
 
-    local err = migrations:migrate(identifier, function(identifier, migration)
-      if migration then
-        logger:info(string.format(
-          "%s migrated up to: %s",
-          identifier,
-          logger.colors.yellow(migration.name)
-        ))
-      end
-    end)
-    if err then
-      logger:error(err)
-      os.exit(1)
-    end
+  local function on_each_success(identifier, migration)
+    logger:info(string.format(
+      "%s migrated up to: %s",
+      identifier,
+      logger.colors.yellow(migration.name)
+    ))
   end
 
   if kind == "all" then
-    migrate("core")
-    for _, plugin_name in ipairs(parsed_config.plugins_available) do
-      local has_migrations = utils.load_module_if_exists("kong.plugins."..plugin_name..".migrations."..dao_factory.type)
-      if has_migrations then
-        migrate(plugin_name)
-      end
+    local err = migrations:run_all_migrations(before, on_each_success)
+    if err then
+      logger:error_exit(err)
     end
   else
-    migrate(kind)
+    local err = migrations:run_migrations(kind, before, on_each_success)
+    if err then
+      logger:error_exit(err)
+    end
   end
 
   logger:success("Schema up to date")
@@ -114,21 +108,26 @@ elseif args.command == "down" then
     os.exit(1)
   end
 
-  logger:info(string.format(
-    "Rollbacking %s in keyspace \"%s\" (%s)",
-    logger.colors.yellow(kind),
-    logger.colors.yellow(dao_factory._properties.keyspace),
-    dao_factory.type
-  ))
+  local function before(identifier)
+    logger:info(string.format(
+      "Rollbacking %s in keyspace \"%s\" (%s)",
+      logger.colors.yellow(identifier),
+      logger.colors.yellow(dao_factory._properties.keyspace),
+      dao_factory.type
+    ))
+  end
 
-  local rollbacked, err = migrations:rollback(kind)
+  local function on_success(identifier, migration)
+    if migration then
+      logger:success("\""..identifier.."\" rollbacked: "..logger.colors.yellow(migration.name))
+    else
+      logger:success("No migration to rollback")
+    end
+  end
+
+  local err = migrations:run_rollback(kind, before, on_success)
   if err then
-    logger:error(err)
-    os.exit(1)
-  elseif rollbacked then
-    logger:success("\""..kind.."\" rollbacked: "..logger.colors.yellow(rollbacked.name))
-  else
-    logger:success("No migration to rollback")
+    logger:error_exit(err)
   end
 
 elseif args.command == "reset" then

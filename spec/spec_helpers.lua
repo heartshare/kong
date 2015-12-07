@@ -40,7 +40,7 @@ function _M.add_env(conf_file)
     configuration = env_configuration,
     dao_factory = env_factory,
     events = events,
-    migrations = Migrations(env_factory),
+    migrations = Migrations(env_factory, env_configuration),
     conf_file = conf_file,
     faker = Faker(env_factory)
   }
@@ -94,8 +94,8 @@ function _M.find_port(exclude)
   end
 
   -- Finding an available port
-  local handle = io.popen([[(netstat  -atn | awk '{printf "%s\n%s\n", $4, $4}' | grep -oE '[0-9]*$'; seq 32768 61000) | sort -n | uniq -u | head -n 1]])
-  local result = handle:read("*a")
+  local handle = io.popen([[(netstat  -atn | awk '{printf "%s\n%s\n", $4, $4}' | grep -oE '[0-9]*$'; seq 32768 61000) | sort -n | uniq -u]])
+  local result = (handle:read("*a") .. "\n"):match("^(.-)\n")
   handle:close()
 
   -- Closing the opened servers
@@ -106,18 +106,22 @@ function _M.find_port(exclude)
   return tonumber(result)
 end
 
--- Starts a TCP server
+-- Starts a TCP server, accepting a single connection and then closes
 -- @param `port`    The port where the server will be listening to
 -- @return `thread` A thread object
 function _M.start_tcp_server(port, ...)
   local thread = Threads.new({
     function(port)
       local socket = require "socket"
-      local server = assert(socket.bind("*", port))
+      local server = assert(socket.tcp())
+      assert(server:setoption('reuseaddr', true))
+      assert(server:bind("*", port))
+      assert(server:listen())
       local client = server:accept()
       local line, err = client:receive()
       if not err then client:send(line .. "\n") end
       client:close()
+      server:close()
       return line
     end;
   }, port)
@@ -126,14 +130,17 @@ function _M.start_tcp_server(port, ...)
 end
 
 
--- Starts a HTTP server
+-- Starts a HTTP server, accepting a single connection and then closes
 -- @param `port`    The port where the server will be listening to
 -- @return `thread` A thread object
 function _M.start_http_server(port, ...)
   local thread = Threads.new({
     function(port)
       local socket = require "socket"
-      local server = assert(socket.bind("*", port))
+      local server = assert(socket.tcp())
+      assert(server:setoption('reuseaddr', true))
+      assert(server:bind("*", port))
+      assert(server:listen())
       local client = server:accept()
 
       local lines = {}
@@ -152,11 +159,13 @@ function _M.start_http_server(port, ...)
       end
 
       if err then
+        server:close()
         error(err)
       end
 
       client:send("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n")
       client:close()
+      server:close()
       return lines
     end;
   }, port)
@@ -164,7 +173,7 @@ function _M.start_http_server(port, ...)
   return thread:start(...)
 end
 
--- Starts a UDP server
+-- Starts a UDP server, accepting a single connection and then closes
 -- @param `port`    The port where the server will be listening to
 -- @return `thread` A thread object
 function _M.start_udp_server(port, ...)
@@ -172,8 +181,10 @@ function _M.start_udp_server(port, ...)
     function(port)
       local socket = require("socket")
       local udp = socket.udp()
+      udp:setoption('reuseaddr', true)
       udp:setsockname("*", port)
       local data = udp:receivefrom()
+      udp:close()
       return data
     end;
   }, port)
@@ -188,7 +199,7 @@ function _M.prepare_db(conf_file)
   local env = _M.get_env(conf_file)
 
   -- 1. Migrate our keyspace
-  local err = env.migrations:migrate_all(env.configuration)
+  local err = env.migrations:run_all_migrations()
   if err then
     error(err)
   end
