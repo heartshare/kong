@@ -92,9 +92,6 @@ function Serf:_autojoin(current_node_name)
           local _, err = self:invoke_signal("join", {v.address})
           if err then
             logger:warn("Cannot join "..v.address..". If the node does not exist anymore it will be automatically purged.")
-            if err then
-              return false, tostring(err)
-            end
           else
             logger:info("Successfully auto-joined "..v.address)
             joined = true
