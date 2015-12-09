@@ -44,7 +44,7 @@ describe("Core Hooks", function()
   end)
 
   describe("Plugin entity invalidation", function()
-    --[[
+
     it("should invalidate a plugin when deleting", function()
       -- Making a request to populate the cache
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -124,7 +124,7 @@ describe("Core Hooks", function()
       assert.equals(200, status)
       assert.equals(10, tonumber(headers["x-ratelimit-limit-minute"]))
     end)
-    --]]
+
     it("should invalidate a consumer-specific plugin when updating", function()
       -- Making a request to populate the cache
       local _, status, headers = http_client.get(STUB_GET_URL, {}, {host = "hooks-plugins.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -167,9 +167,8 @@ describe("Core Hooks", function()
       local _, status, headers = http_client.get(STUB_GET_URL, {}, {host = "hooks-plugins.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
       assert.equals(200, status)
       assert.equals(10, tonumber(headers["x-ratelimit-limit-minute"]))
-      --]]
     end)
---[[
+
     it("should invalidate a plugin when updating", function()
       -- Making a request to populate the cache
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com", authorization = "Basic dXNlcjEyMzpwYXNzMTIz"})
@@ -206,9 +205,9 @@ describe("Core Hooks", function()
       local _, status = http_client.get(STUB_GET_URL, {}, {host = "hooks-consumer.com"})
       assert.equals(200, status)
     end)
---]]
+
   end)
-  --[[
+  
   describe("Consumer entity invalidation", function()
     it("should invalidate a consumer when deleting", function()
       -- Making a request to populate the cache
@@ -481,5 +480,5 @@ describe("Core Hooks", function()
       assert.True(found)
     end)
   end)
-  --]]
+  
 end)
