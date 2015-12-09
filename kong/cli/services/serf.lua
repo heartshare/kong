@@ -29,27 +29,13 @@ function Serf:prepare()
   
   local script = [[
 #!/bin/sh
-JSON_TOPIC_RAW=`cat` # Read from stdin
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//\\/\\\\} # \ 
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//\//\\\/} # / 
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//\'/\\\'} # ' (not strictly needed ?)
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//\"/\\\"} # " 
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//   /\\t} # \t (tab)
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//
-/\\\n} # \n (newline)
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//^M/\\\r} # \r (carriage return)
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//^L/\\\f} # \f (form feed)
-JSON_TOPIC_RAW=${JSON_TOPIC_RAW//^H/\\\b} # \b (backspace)
+PAYLOAD=`cat` # Read from stdin
 
-PAYLOAD=""
-
-if [ $SERF_EVENT = "user" ]; then
-  PAYLOAD=$JSON_TOPIC_RAW
-else
-  PAYLOAD="{\\\"type\\\":\\\"${SERF_EVENT}\\\",\\\"entity\\\":\\\"${JSON_TOPIC_RAW}\\\"}"
+if ! [ $SERF_EVENT = "user" ]; then
+  PAYLOAD="{\"type\":\"${SERF_EVENT}\",\"entity\": ${PAYLOAD}}"
 fi
 
-COMMAND='require("kong.tools.http_client").post("http://127.0.0.1:]]..self._parsed_config.admin_api_port..[[/cluster/events/", "'${PAYLOAD}'", {["content-type"] = "application/json"})'
+COMMAND='require("kong.tools.http_client").post("http://127.0.0.1:]]..self._parsed_config.admin_api_port..[[/cluster/events/", ]].."[['${PAYLOAD}']]"..[[, {["content-type"] = "application/json"})'
 
 echo $COMMAND | ]]..luajit_path..[[
 ]]
