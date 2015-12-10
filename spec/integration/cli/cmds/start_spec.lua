@@ -31,7 +31,7 @@ describe("CLI", function()
     after_each(function()
       pcall(spec_helper.stop_kong, SERVER_CONF)
     end)
-
+  
   describe("Generic", function()
     it("should start up all the services", function()
       assert.has_no.errors(function()
@@ -49,7 +49,32 @@ describe("CLI", function()
       assert.equal(200, status) -- is running
     end)
   end)
+  
+  describe("Nodes", function()
 
+    it("should register the node into the datastore", function()
+
+      assert.has_no.errors(function()
+        spec_helper.start_kong(TEST_CONF, true)
+      end)
+
+      local env = spec_helper.get_env() -- test environment
+      local dao_factory = env.dao_factory
+
+      local nodes = {}
+      local err
+
+      while(#nodes < 1) do
+        nodes, err = dao_factory.nodes:find_all()
+        assert.falsy(err)
+        assert.truthy(nodes)
+      end
+
+      assert.truthy(#nodes > 0)
+    end)
+
+  end)
+  
   describe("Startup plugins check", function()
 
     it("should start with the default configuration", function()
@@ -117,4 +142,5 @@ describe("CLI", function()
     end)
 
   end)
+  
 end)

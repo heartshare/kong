@@ -31,9 +31,11 @@ function Serf:prepare()
 #!/bin/sh
 PAYLOAD=`cat` # Read from stdin
 
-if ! [ $SERF_EVENT = "user" ]; then
-  PAYLOAD="{\"type\":\"${SERF_EVENT}\",\"entity\": ${PAYLOAD}}"
+if [ "$SERF_EVENT" != "user" ]; then
+  PAYLOAD="{\"type\":\"${SERF_EVENT}\",\"entity\": \"${PAYLOAD}\"}"
 fi
+
+echo $PAYLOAD > /tmp/payload
 
 COMMAND='require("kong.tools.http_client").post("http://127.0.0.1:]]..self._parsed_config.admin_api_port..[[/cluster/events/", ]].."[['${PAYLOAD}']]"..[[, {["content-type"] = "application/json"})'
 
@@ -66,13 +68,19 @@ function Serf:_autojoin(current_node_name)
       return false, tostring(err)
     end
 
-    local nodes, err = self._dao_factory.nodes:find_by_keys()
+    local nodes, err = self._dao_factory.nodes:find_all()
     if err then
       return false, tostring(err)
     else
       if #nodes == 0 then
         logger:warn("Cannot auto-join the cluster because no nodes were found")
       else
+
+        -- Sort by newest to oldest
+        table.sort(nodes, function(a, b)
+          return a.created_at > b.created_at
+        end)
+
         local joined
         for _, v in ipairs(nodes) do
           local _, err = self:invoke_signal("join", {v.address})
@@ -181,6 +189,7 @@ function Serf:event(t_payload)
 end
 
 function Serf:stop()
+  logger:info("Leaving cluster..")
   local _, err = self:invoke_signal("leave")
   if err then
     return false, err
